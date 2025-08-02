@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎥 جلب معلومات فيديو يوتيوب</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .fade-out {
+      animation: fadeOut 2s forwards;
+    }
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      100% { opacity: 0; visibility: hidden; }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-4 text-right">
+  <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6 space-y-4">
+    <h1 class="text-xl font-bold text-center">🔍 أداة جلب معلومات فيديو يوتيوب</h1>
+    <input id="videoUrl" type="text" placeholder="ألصق رابط الفيديو هنا" class="w-full p-2 border rounded" />
+    <button onclick="getVideoData()" class="bg-blue-600 text-white px-4 py-2 rounded w-full">جلب المعلومات</button>
+
+    <div id="alert" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded shadow-lg hidden z-50"></div>
+
+    <div id="result" class="space-y-6 hidden">
+
+      <div>
+        <strong>📛 العنوان:</strong>
+        <p id="title" class="break-words w-full mb-2"></p>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="copyText('title')" class="bg-green-500 text-white px-3 py-1 rounded">نسخ</button>
+          <button onclick="downloadText('title', 'العنوان')" class="bg-purple-600 text-white px-3 py-1 rounded">تحميل</button>
+        </div>
+      </div>
+
+      <div>
+        <strong>📝 الوصف:</strong>
+        <p id="description" class="break-words w-full mb-2 whitespace-pre-line"></p>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="copyText('description')" class="bg-green-500 text-white px-3 py-1 rounded">نسخ</button>
+          <button onclick="downloadText('description', 'الوصف')" class="bg-purple-600 text-white px-3 py-1 rounded">تحميل</button>
+        </div>
+      </div>
+
+      <div>
+        <strong>🏷️ التاغات:</strong>
+        <p id="tags" class="break-words w-full mb-2"></p>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="copyText('tags')" class="bg-green-500 text-white px-3 py-1 rounded">نسخ</button>
+          <button onclick="downloadText('tags', 'التاغات')" class="bg-purple-600 text-white px-3 py-1 rounded">تحميل</button>
+        </div>
+      </div>
+
+      <div>
+        <strong>📂 الفئة:</strong>
+        <p id="category" class="break-words w-full mb-2"></p>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="copyText('category')" class="bg-green-500 text-white px-3 py-1 rounded">نسخ</button>
+          <button onclick="downloadText('category', 'الفئة')" class="bg-purple-600 text-white px-3 py-1 rounded">تحميل</button>
+        </div>
+      </div>
+
+      <div>
+        <strong>📅 تاريخ الرفع:</strong>
+        <p id="publishedAt" class="break-words w-full mb-2"></p>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="copyText('publishedAt')" class="bg-green-500 text-white px-3 py-1 rounded">نسخ</button>
+          <button onclick="downloadText('publishedAt', 'تاريخ الرفع')" class="bg-purple-600 text-white px-3 py-1 rounded">تحميل</button>
+        </div>
+      </div>
+
+      <div>
+        <strong>🖼️ الصورة المصغرة:</strong>
+        <img id="thumbnail" src="" alt="Thumbnail" class="w-full max-w-md mx-auto rounded border shadow mb-2">
+        <button id="downloadImageBtn" class="bg-blue-500 text-white px-3 py-1 rounded">تحميل الصورة</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const apiKey = 'AIzaSyDMWWYjIpIYo6nCHTZjG_53wHJHBBO__2s';
+
+    function showAlert(msg) {
+      const alert = document.getElementById('alert');
+      alert.textContent = msg;
+      alert.classList.remove('hidden', 'fade-out');
+      setTimeout(() => alert.classList.add('fade-out'), 2000);
+      document.addEventListener('click', () => alert.classList.add('fade-out'), { once: true });
+    }
+
+    function copyText(id) {
+      const el = document.getElementById(id);
+      navigator.clipboard.writeText(el.textContent).then(() =>
+        showAlert(`✅ تم نسخ ${id === 'tags' ? 'التاغات' : id === 'description' ? 'الوصف' : id === 'title' ? 'العنوان' : id === 'publishedAt' ? 'تاريخ الرفع' : id === 'category' ? 'الفئة' : 'النص'}`)
+      );
+    }
+
+    function downloadText(id, label) {
+      const el = document.getElementById(id);
+      const text = el.textContent;
+      const titleSafe = document.getElementById('title').textContent.replace(/[\\/:*?"<>|]/g, '') || 'video';
+      const filename = `${label} - ${titleSafe}.txt`;
+
+      const BOM = new Uint8Array([0xEF, 0xBB, 0xBF]);
+      const encoder = new TextEncoder();
+      const encodedText = encoder.encode(text);
+
+      const blob = new Blob([BOM, encodedText], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    async function getCategories() {
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/videoCategories?part=snippet&regionCode=US&key=${apiKey}`);
+      const data = await res.json();
+      const map = {};
+      data.items.forEach(cat => {
+        map[cat.id] = cat.snippet.title;
+      });
+      return map;
+    }
+
+    async function getVideoData() {
+      const input = document.getElementById('videoUrl').value.trim();
+      const match = input.match(/(?:v=|\/shorts\/|\.be\/)([\w-]{11})/);
+      if (!match) return alert('رابط غير صالح');
+      const videoId = match[1];
+
+      const categoriesMap = await getCategories();
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`);
+      const data = await res.json();
+      const snippet = data.items[0]?.snippet;
+      if (!snippet) return alert('فيديو غير موجود');
+
+      const titleSafe = snippet.title.replace(/[\\/:*?"<>|]/g, '');
+
+      document.getElementById('title').textContent = snippet.title;
+      document.getElementById('description').textContent = snippet.description || 'لا يوجد وصف';
+      document.getElementById('tags').textContent = snippet.tags?.join(', ') || 'لا توجد تاغات';
+      document.getElementById('category').textContent = categoriesMap[snippet.categoryId] || 'غير معروف';
+
+      const publishedDate = new Date(snippet.publishedAt);
+      const formattedDate = publishedDate.toISOString().split('T')[0];
+      document.getElementById('publishedAt').textContent = formattedDate;
+
+      const thumb = snippet.thumbnails.maxres?.url || snippet.thumbnails.standard?.url || snippet.thumbnails.high?.url || snippet.thumbnails.default?.url;
+      document.getElementById('thumbnail').src = thumb;
+
+      document.getElementById('downloadImageBtn').onclick = () => {
+        fetch(thumb).then(response => response.blob()).then(blob => {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `${titleSafe}.jpg`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }).catch(() => alert('فشل تحميل الصورة'));
+      };
+
+      document.getElementById('result').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
